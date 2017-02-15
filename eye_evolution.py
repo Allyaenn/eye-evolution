@@ -15,8 +15,8 @@ class Individual:
         self.fit = 0
 
     def __repr__(self):
-        return "Individu: rco({}), ti({}), at({}), n0({})".format(
-                self.rco, self.ti, self.at, self.n0)
+        #return "Individu: rco({}), ti({}), at({}), n0({})".format(self.rco, self.ti, self.at, self.n0)
+        return "Individu: v({})".format(self.fit)
 
 ####################################################################################################################################
 
@@ -29,9 +29,7 @@ def select_parent(fit_indvs, p_rep):
     for i in range(0, len(fit_indvs)) :
         sum_p = sum_p + p_rep[i]
         if (rd1 < sum_p) :
-            #print("parent selected")
             return fit_indvs[i]
-    #print("no parent found !")
     return None
 
 def create_child(parent1, parent2) :
@@ -62,7 +60,7 @@ def create_child(parent1, parent2) :
     return Individual(rc, t, ang, ref)
 
 def mutate(child):
-    mutationChance = 0.1
+    mutationChance = 0.3
     if random.random() > mutationChance:
         return
     rd1 = random.randint(1, 4)
@@ -70,11 +68,12 @@ def mutate(child):
     if rd1 == 1:
         child.rco = random.uniform(w/2,10000)
     elif rd1 == 2:
-        child.ti = random.uniform(0,w/2)
+        child.ti = random.uniform(0,w/2*0.999)
     elif rd1  == 3:
-        child.at = random.uniform(0,math.pi/2)
+        child.at = random.uniform(0,math.pi/2*0.999)
     else:
         child.n0 = random.uniform(1.35,1.55)
+
 
 
 def mutateGently(child) :
@@ -125,10 +124,12 @@ dataFile.write("g,rco,ti,at,n0,p,a,r1,theta,v\n")
 #paramètres de la simulation
 w = 1.5
 light = math.exp(6)
-nb_indivs = 50
-nb_iteration = 100
-tshld = 0.01
+nb_indivs = 1000
+nb_iteration = 1000
+tshld = 0.0001
+t_n0 = 0.001
 tshld_rco = tshld * 10000
+sq = math.sqrt(math.exp(1)/(0.746*math.sqrt(light)))
 
 #lecture du fichier indice_refraction
 fichier = open("indice_refraction_facile.dat", "r")
@@ -143,52 +144,59 @@ fichier.close()
 #création de la population intiale
 indivs = []
 for i in range (0, nb_indivs) :
-    indivs.append(Individual(10000, 0, 0, 1.35))
+    indivs.append(Individual(10000.0, 0.0, 0.0, 1.35))
 
 #pour toutes les itérations
 for it in range(0, nb_iteration) :
     #test de la fitness d'une population
     fit_indvs = []
     for ind in range (0, nb_indivs) :
-
-        #calcul des grandeurs p et a
-        print("rco",indivs[ind].rco)
-
-        print("n0", indivs[ind].n0)
-        if abs(indivs[ind].rco-w/2) < tshld: #version 1
-            p = (w/2)*(1 + math.sin(indivs[ind].at))
-            a = w*math.cos(indivs[ind].at)-2*indivs[ind].ti
-        elif indivs[ind].rco > w/2: #version 2
-            p = indivs[ind].rco - (math.sqrt(math.pow(indivs[ind].rco,2) - (math.pow(w,2)/4)))
-            a = w - 2*indivs[ind].ti
-        else:
-            print("Erreur -> rc0 < w/2")
-
-        #calcul de r1
-        r1 = dic_indice[round(indivs[ind].n0,3)]
-        print("r1",r1)
-        #calcul de theta
-        print(indivs[ind].n0)
-        if abs(indivs[ind].n0-1.35) < 0.001 :
-            theta = 2*math.atan(a/(2*p))
-        else :
-            #print(r1)
-            tmp = (math.pow(r1,2)*a)/(2*p)
-            tmp2 = 1+math.pow(r1,2) - ((math.pow(r1,2)*math.pow(a,2))/(4*math.pow(p,2)))
-            tmp3 = (1+math.pow(r1,2))
-            print("a",a,"p",p)
-            print("tmp2",tmp2)
-            theta = tmp - math.sqrt(tmp2)/tmp3
-
-        if ((abs(indivs[ind].at)>tshld and abs(indivs[ind].rco-w/2)>tshld) or (abs(indivs[ind].rco)>tshld and indivs[ind].ti > w*math.cos(indivs[ind].at)/2)
-        or (abs(indivs[ind].n0-1.35)>tshld and ((p > r1*a/2) and (p < a/2)))) :
+        if ((abs(indivs[ind].at)>tshld and abs(indivs[ind].rco-w/2)>tshld)
+        or (abs(indivs[ind].at)>tshld and indivs[ind].ti > w*math.cos(indivs[ind].at)/2)
+        or (abs(indivs[ind].n0-1.35)<t_n0 and indivs[ind].at<tshld and indivs[ind].ti>(1/2*(w-sq)))
+        or (abs(indivs[ind].n0-1.35)<t_n0 and indivs[ind].at>tshld and indivs[ind].ti>(1/2*(w*math.cos(indivs[ind].at)-sq)))
+        or (abs(indivs[ind].n0-1.35)>t_n0 and ((p > r1*a/2) or (p < a/2)))) :
             #print ("individu non valide")
             pass
         else :
+            #calcul des grandeurs p et a
+            # print("rco",indivs[ind].rco)
+
+            # print("n0", indivs[ind].n0)
+            if abs(indivs[ind].rco-w/2) < tshld: #version 1
+                p = (w/2)*(1 + math.sin(indivs[ind].at))
+                a = w*math.cos(indivs[ind].at)-2*indivs[ind].ti
+            elif indivs[ind].rco > w/2: #version 2
+                p = indivs[ind].rco - (math.sqrt(math.pow(indivs[ind].rco,2) - (math.pow(w,2)/4)))
+                a = w - 2*indivs[ind].ti
+            else:
+                print("Erreur -> rc0 < w/2")
+
+            #calcul de r1
+            r1 = dic_indice[round(indivs[ind].n0,3)]
+            # print("r1",r1)
+            #calcul de theta
+            # print(indivs[ind].n0)
+            # print("ti",indivs[ind].ti)
+            if abs(indivs[ind].n0-1.35) < 0.001 :
+                theta = 2*math.atan(a/(2*p))
+                # print("a",a,"p",p)
+            else :
+                #print(r1)
+                tmp = (math.pow(r1,2)*a)/(2*p)
+                tmp2 = 1+math.pow(r1,2) - ((math.pow(r1,2)*math.pow(a,2))/(4*math.pow(p,2)))
+                tmp3 = (1+math.pow(r1,2))
+                # print("a",a,"p",p)
+
+                #print("tmp2",tmp2)
+                theta = tmp - math.sqrt(tmp2)/tmp3
+
+
             #calcul de la fitness pour cet individu
             if abs(indivs[ind].n0-1.35) < 0.001:
                 #v = (0.375*p/a*math.sqrt(math.log10(0.746*a**2*math.sqrt(light))/math.log10(math.exp(1))))
                 partie1 = 0.746* math.pow(a,2) * math.sqrt(light)
+                # print("partie1", partie1)
                 partie2 = math.sqrt(math.log(partie1))
                 v = 0.375 * (p / a) * partie2
             else :
@@ -202,6 +210,8 @@ for it in range(0, nb_iteration) :
     #print(fit_indvs)
     #classement des individus selon leur rang
     fit_indvs.sort(key=operator.attrgetter('fit'))
+    fit_indvs.reverse()
+    #print(fit_indvs)
     #calcul de leur proba de reproduction
     len_fits = len(fit_indvs)
     coeff = (2.0/(len_fits*(len_fits-1)))
@@ -211,7 +221,6 @@ for it in range(0, nb_iteration) :
         p_rep.append(coeff*(len_fits-j-1))
 
     #print(p_rep)
-
     #génération des nouveaux individus
     nb_nv_indivs = 0
     nv_indivs = []
@@ -231,12 +240,14 @@ for it in range(0, nb_iteration) :
 
         #mutation chez les enfants
         mutate(child1)
-        mutate(child1)
+        mutate(child2)
 
         nv_indivs.append(child1)
         nv_indivs.append(child2)
 
-        indivs = nv_indivs
+        print("parent1", par1.at, "par2", par2.at, "child1", child1.at, "child2",child2.at)
+
+    indivs = nv_indivs
 
 dataFile.close()
 #The end
