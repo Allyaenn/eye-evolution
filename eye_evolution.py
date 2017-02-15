@@ -2,6 +2,7 @@
 import math
 import operator
 import random
+import csv
 
 #defintion de ce qu'est un individu
 class Individual:
@@ -28,9 +29,9 @@ def select_parent(fit_indvs, p_rep):
     for i in range(0, len(fit_indvs)) :
         sum_p = sum_p + p_rep[i]
         if (rd1 < sum_p) :
-            print("parent selected")
+            #print("parent selected")
             return fit_indvs[i]
-    print("no parent found !")
+    #print("no parent found !")
     return None
 
 def create_child(parent1, parent2) :
@@ -60,7 +61,23 @@ def create_child(parent1, parent2) :
 
     return Individual(rc, t, ang, ref)
 
-def mutate(child) :
+def mutate(child):
+    mutationChance = 0.1
+    if random.random() > mutationChance:
+        return
+    rd1 = random.randint(1, 4)
+
+    if rd1 == 1:
+        child.rco = random.uniform(w/2,10000)
+    elif rd1 == 2:
+        child.ti = random.uniform(0,w/2)
+    elif rd1  == 3:
+        child.at = random.uniform(0,math.pi/2)
+    else:
+        child.n0 = random.uniform(1.35,1.55)
+
+
+def mutateGently(child) :
     #doit-on vérifier que les valeurs sont dans les intervales prévu -> oui !
     #penser à changer les intervalles !!!
     rd1 = random.randint(1, 5)
@@ -71,7 +88,7 @@ def mutate(child) :
             if (child.rco+pas) < 10000 :
                 child.rco = child.rco + pas
         else :
-            if (child.rco-pas) <= w/2 :
+            if (child.rco-pas) >= w/2 :
                 child.rco = child.rco - pas
 
     elif rd1 == 2 :
@@ -80,7 +97,7 @@ def mutate(child) :
             if (child.ti+pas) < w/2 :
                 child.ti = child.ti + pas
         else :
-            if (child.ti-pas) <= 0 :
+            if (child.ti-pas) >= 0 :
                 child.ti = child.ti - pas
 
     elif rd1 == 3 :
@@ -89,7 +106,7 @@ def mutate(child) :
             if (child.at+pas) < 3.14/2 :
                 child.at = child.at + pas
         else :
-            if (child.at-pas) <= 0 :
+            if (child.at-pas) >= 0 :
                 child.at = child.at - pas
 
     elif rd1 == 4 :
@@ -98,16 +115,20 @@ def mutate(child) :
             if (child.n0+pas) < 1.55 :
                 child.n0 = child.n0 + pas
         else :
-            if (child.n0-pas) <= 1.35 :
+            if (child.n0-pas) >= 1.35 :
                 child.n0 = child.n0 - pas
 
 ############################################################################################################################
+dataFile = open("data.csv","w")
+dataFile.write("g,rco,ti,at,n0,p,a,r1,theta,v\n")
+
 #paramètres de la simulation
 w = 1.5
 light = math.exp(6)
-nb_indivs = 10
+nb_indivs = 50
 nb_iteration = 100
-tshld = 0.000001
+tshld = 0.01
+tshld_rco = tshld * 10000
 
 #lecture du fichier indice_refraction
 fichier = open("indice_refraction_facile.dat", "r")
@@ -131,6 +152,9 @@ for it in range(0, nb_iteration) :
     for ind in range (0, nb_indivs) :
 
         #calcul des grandeurs p et a
+        print("rco",indivs[ind].rco)
+
+        print("n0", indivs[ind].n0)
         if abs(indivs[ind].rco-w/2) < tshld: #version 1
             p = (w/2)*(1 + math.sin(indivs[ind].at))
             a = w*math.cos(indivs[ind].at)-2*indivs[ind].ti
@@ -142,44 +166,51 @@ for it in range(0, nb_iteration) :
 
         #calcul de r1
         r1 = dic_indice[round(indivs[ind].n0,3)]
-
+        print("r1",r1)
         #calcul de theta
         print(indivs[ind].n0)
         if abs(indivs[ind].n0-1.35) < 0.001 :
             theta = 2*math.atan(a/(2*p))
         else :
-            print(r1)
+            #print(r1)
             tmp = (math.pow(r1,2)*a)/(2*p)
             tmp2 = 1+math.pow(r1,2) - ((math.pow(r1,2)*math.pow(a,2))/(4*math.pow(p,2)))
-            print(tmp2)
             tmp3 = (1+math.pow(r1,2))
+            print("a",a,"p",p)
+            print("tmp2",tmp2)
             theta = tmp - math.sqrt(tmp2)/tmp3
 
         if ((abs(indivs[ind].at)>tshld and abs(indivs[ind].rco-w/2)>tshld) or (abs(indivs[ind].rco)>tshld and indivs[ind].ti > w*math.cos(indivs[ind].at)/2)
         or (abs(indivs[ind].n0-1.35)>tshld and ((p > r1*a/2) and (p < a/2)))) :
-            print ("individu non valide")
+            #print ("individu non valide")
+            pass
         else :
-            #calcul de la fitness pour cet individus
-            if abs(indivs[ind].n0-1.35) < tshld:
-                v = (0.375*p/a*math.sqrt(math.log10(0.746*a**2*math.sqrt(light))/math.log10(math.exp(1))))
+            #calcul de la fitness pour cet individu
+            if abs(indivs[ind].n0-1.35) < 0.001:
+                #v = (0.375*p/a*math.sqrt(math.log10(0.746*a**2*math.sqrt(light))/math.log10(math.exp(1))))
+                partie1 = 0.746* math.pow(a,2) * math.sqrt(light)
+                partie2 = math.sqrt(math.log(partie1))
+                v = 0.375 * (p / a) * partie2
             else :
                 v = 1/theta
             #sauvegarde des individus valides
             indivs[ind].fit = v
             fit_indvs.append(indivs[ind])
+            dataFile.write(str(it)+","+str(indivs[ind].rco) + "," +str(indivs[ind].ti) + "," +str(indivs[ind].at) +"," +str(indivs[ind].n0)+
+             "," +str(p)+ ","+str(a)+","+str(r1)+"," +str(theta)+","+str(v)+"\n")
 
-    print(fit_indvs)
+    #print(fit_indvs)
     #classement des individus selon leur rang
     fit_indvs.sort(key=operator.attrgetter('fit'))
     #calcul de leur proba de reproduction
     len_fits = len(fit_indvs)
     coeff = (2.0/(len_fits*(len_fits-1)))
-    print(coeff)
+    #print(coeff)
     p_rep = []
     for j in range(0,len_fits) :
         p_rep.append(coeff*(len_fits-j-1))
 
-    print(p_rep)
+    #print(p_rep)
 
     #génération des nouveaux individus
     nb_nv_indivs = 0
@@ -192,7 +223,7 @@ for it in range(0, nb_iteration) :
         while par1 == par2 :
             par2 = select_parent(fit_indvs, p_rep)
             #print(par2)
-        print("I have 2 parents")
+        #print("I have 2 parents")
 
         #création de 2 enfants avec cross-over
         child1 = create_child(par1, par2)
@@ -206,3 +237,6 @@ for it in range(0, nb_iteration) :
         nv_indivs.append(child2)
 
         indivs = nv_indivs
+
+dataFile.close()
+#The end
