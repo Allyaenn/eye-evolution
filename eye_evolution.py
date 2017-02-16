@@ -59,7 +59,7 @@ def create_child(parent1, parent2) :
 
     return Individual(rc, t, ang, ref)
 
-def mutate(child):
+def mutateV2(child):
     mutationChance = 0.3
     if random.random() > mutationChance:
         return
@@ -68,21 +68,35 @@ def mutate(child):
     if rd1 == 1:
         child.rco = random.uniform(w/2,10000)
     elif rd1 == 2:
-        child.ti = random.uniform(0,w/2*0.999)
+        child.ti = random.uniform(0,w/2)
     elif rd1  == 3:
-        child.at = random.uniform(0,math.pi/2*0.999)
+        child.at = random.uniform(0,math.pi/2)
     else:
+        child.n0 = random.uniform(1.35,1.55)
+
+def mutateV3(child):
+    rd1 = random.randint(1, 4)
+    if rd1 == 1:
+        child.rco = random.uniform(w/2,10000)
+    rd2 = random.randint(1, 4)
+    if rd2 == 1:
+        child.ti = random.uniform(0,w/2)
+    rd3 = random.randint(1, 4)
+    if rd3  == 1:
+        child.at = random.uniform(0,math.pi/2)
+    rd4 = random.randint(1, 4)
+    if rd4 == 1:
         child.n0 = random.uniform(1.35,1.55)
 
 
 
-def mutateGently(child) :
+def mutate(child) :
     #doit-on vérifier que les valeurs sont dans les intervales prévu -> oui !
     #penser à changer les intervalles !!!
     rd1 = random.randint(1, 5)
     rd2 = random.randint(1, 2)
     if rd1 == 1 :
-        pas = 9.99
+        pas = 1
         if rd2 == 1 :
             if (child.rco+pas) < 10000 :
                 child.rco = child.rco + pas
@@ -124,9 +138,9 @@ dataFile.write("g,rco,ti,at,n0,p,a,r1,theta,v\n")
 #paramètres de la simulation
 w = 1.5
 light = math.exp(6)
-nb_indivs = 1000
-nb_iteration = 1000
-tshld = 0.0001
+nb_indivs = 50
+nb_iteration = 50000
+tshld = 0.000000001
 t_n0 = 0.001
 tshld_rco = tshld * 10000
 sq = math.sqrt(math.exp(1)/(0.746*math.sqrt(light)))
@@ -144,7 +158,7 @@ fichier.close()
 #création de la population intiale
 indivs = []
 for i in range (0, nb_indivs) :
-    indivs.append(Individual(10000.0, 0.0, 0.0, 1.35))
+    indivs.append(Individual(w/2, 0.0, 0.0, 1.35))
 
 #pour toutes les itérations
 for it in range(0, nb_iteration) :
@@ -245,7 +259,7 @@ for it in range(0, nb_iteration) :
         nv_indivs.append(child1)
         nv_indivs.append(child2)
 
-        print("parent1", par1.at, "par2", par2.at, "child1", child1.at, "child2",child2.at)
+        #print("parent1", par1.at, "par2", par2.at, "child1", child1.at, "child2",child2.at)
 
     indivs = nv_indivs
 
