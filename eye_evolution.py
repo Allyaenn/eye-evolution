@@ -75,7 +75,7 @@ def mutateV2(child):
         child.n0 = random.uniform(1.35,1.55)
 
 def mutateV3(child):
-    rd1 = random.randint(1, 4)
+    rd1 = random.randint(1, 2)
     if rd1 == 1:
         child.rco = random.uniform(w/2,10000)
     rd2 = random.randint(1, 4)
@@ -88,48 +88,72 @@ def mutateV3(child):
     if rd4 == 1:
         child.n0 = random.uniform(1.35,1.55)
 
-
-
 def mutate(child) :
     #doit-on vérifier que les valeurs sont dans les intervales prévu -> oui !
     #penser à changer les intervalles !!!
-    rd1 = random.randint(1, 5)
+    rd1 = random.randint(1, 4)
     rd2 = random.randint(1, 2)
     if rd1 == 1 :
-        pas = 1
+        pas = 9.99
         if rd2 == 1 :
-            if (child.rco+pas) < 10000 :
-                child.rco = child.rco + pas
+            child.rco = child.rco + pas
+            if child.rco > 10000 :
+                child.rco = 10000
         else :
-            if (child.rco-pas) >= w/2 :
-                child.rco = child.rco - pas
+            child.rco = child.rco - pas
+            if child.rco < w/2 :
+                child.rco = w/2
 
-    elif rd1 == 2 :
+    rd1 = random.randint(1, 4)
+    rd2 = random.randint(1, 2)
+    if rd1 == 1 :
         pas = 0.00075
         if rd2 == 1 :
-            if (child.ti+pas) < w/2 :
-                child.ti = child.ti + pas
+            child.ti = child.ti + pas
+            if (child.ti) >= w/2 :
+                child.ti = (w/2) - pas
         else :
-            if (child.ti-pas) >= 0 :
-                child.ti = child.ti - pas
+            child.ti = child.ti - pas
+            if (child.ti) < 0 :
+                child.ti = 0
 
-    elif rd1 == 3 :
+    rd1 = random.randint(1, 4)
+    rd2 = random.randint(1, 2)
+    if rd1 == 1 :
         pas = 0.00157
         if rd2 == 1 :
-            if (child.at+pas) < 3.14/2 :
-                child.at = child.at + pas
+            child.at = child.at + pas
+            if (child.at) >= (math.pi/2) :
+                child.at=(math.pi/2)-pas
         else :
-            if (child.at-pas) >= 0 :
-                child.at = child.at - pas
+            child.at = child.at - pas
+            if (child.at) < 0 :
+                child.at = 0
 
-    elif rd1 == 4 :
+    rd1 = random.randint(1, 4)
+    rd2 = random.randint(1, 2)
+    if rd1 == 1 :
         pas = 0.0002
         if rd2 == 1 :
-            if (child.n0+pas) < 1.55 :
-                child.n0 = child.n0 + pas
+            child.n0 = child.n0 + pas
+            if (child.n0) > 1.55 :
+                child.n0 = 1.55
         else :
-            if (child.n0-pas) >= 1.35 :
-                child.n0 = child.n0 - pas
+            child.n0 = child.n0 - pas
+            if (child.n0) < 1.35 :
+                child.n0 = 1.35
+
+def myEq(v1,v2,s):
+    if v1 != 0:
+        return abs((v1-v2)/v1) < s
+    else:
+        return abs(v2) < s
+
+def myDiff(v1,v2,s):
+    if v1 != 0:
+        return abs((v1-v2)/v1) > s
+    else:
+        return abs(v2) > s
 
 ############################################################################################################################
 dataFile = open("data.csv","w")
@@ -139,8 +163,8 @@ dataFile.write("g,rco,ti,at,n0,p,a,r1,theta,v\n")
 w = 1.5
 light = math.exp(6)
 nb_indivs = 50
-nb_iteration = 50000
-tshld = 0.000000001
+nb_iteration = 5000
+tshld = 0.00001
 t_n0 = 0.001
 tshld_rco = tshld * 10000
 sq = math.sqrt(math.exp(1)/(0.746*math.sqrt(light)))
@@ -158,7 +182,7 @@ fichier.close()
 #création de la population intiale
 indivs = []
 for i in range (0, nb_indivs) :
-    indivs.append(Individual(w/2, 0.0, 0.0, 1.35))
+    indivs.append(Individual(10000, 0.0, 0.0, 1.35))
 
 #pour toutes les itérations
 for it in range(0, nb_iteration) :
@@ -167,9 +191,9 @@ for it in range(0, nb_iteration) :
     for ind in range (0, nb_indivs) :
         if ((abs(indivs[ind].at)>tshld and abs(indivs[ind].rco-w/2)>tshld)
         or (abs(indivs[ind].at)>tshld and indivs[ind].ti > w*math.cos(indivs[ind].at)/2)
-        or (abs(indivs[ind].n0-1.35)<t_n0 and indivs[ind].at<tshld and indivs[ind].ti>(1/2*(w-sq)))
-        or (abs(indivs[ind].n0-1.35)<t_n0 and indivs[ind].at>tshld and indivs[ind].ti>(1/2*(w*math.cos(indivs[ind].at)-sq)))
-        or (abs(indivs[ind].n0-1.35)>t_n0 and ((p > r1*a/2) or (p < a/2)))) :
+        or (abs(indivs[ind].n0-1.35)<t_n0 and abs(indivs[ind].at)<tshld and indivs[ind].ti>((1/2)*(w-sq)))
+        or (abs(indivs[ind].n0-1.35)<t_n0 and abs(indivs[ind].at)>tshld and indivs[ind].ti>((1/2)*(w*math.cos(indivs[ind].at)-sq)))
+        or (abs(indivs[ind].n0-1.35)>t_n0 and ((p > (r1*a)/2) or (p < a/2)))) :
             #print ("individu non valide")
             pass
         else :
@@ -223,6 +247,9 @@ for it in range(0, nb_iteration) :
 
     #print(fit_indvs)
     #classement des individus selon leur rang
+    if (len(fit_indvs)<2) :
+        print("Oops, they're gone....")
+        break
     fit_indvs.sort(key=operator.attrgetter('fit'))
     fit_indvs.reverse()
     #print(fit_indvs)
